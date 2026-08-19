@@ -1,0 +1,13 @@
+{
+  "name": "impulso-editorial-backend",
+  "version": "1.0.0",
+  "description": "Backend que verifica pagos de PayPal (IPN) y controla el acceso a descargas",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "body-parser": "^1.20.2"
+  }
+}
