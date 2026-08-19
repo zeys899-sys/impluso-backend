@@ -115,7 +115,14 @@ app.post("/paypal-ipn", async (req, res) => {
   }
 });
 
-// Tu página web llama a esto después de que el usuario inicia sesión con Google
+// Mapa: nombre exacto del item_name de PayPal -> archivo que le corresponde.
+// Añade aquí una línea por cada libro que vendas.
+const BOOK_FILES = {
+  "Ahorra rápido sin sacrificar tu vida": "libro-ahorro.docx",
+};
+
+// Tu página web llama a esto después de que el usuario inicia sesión con Google,
+// SOLO para saber si debe mostrar el botón de descarga o no.
 app.get("/check-access", (req, res) => {
   const email = (req.query.email || "").toLowerCase();
   const item = req.query.item || "";
@@ -130,6 +137,39 @@ app.get("/check-access", (req, res) => {
   );
 
   res.json({ hasAccess });
+});
+
+// Esta es la ÚNICA vía por la que el archivo real sale del servidor.
+// Nunca está en el HTML ni es público: solo se entrega si el correo
+// realmente pagó ese libro (según lo que registró el IPN de PayPal).
+app.get("/download", (req, res) => {
+  const email = (req.query.email || "").toLowerCase();
+  const item = req.query.item || "";
+
+  if (!email || !item) {
+    return res.status(400).send("Falta email o item");
+  }
+
+  const paidUsers = readPaidUsers();
+  const hasAccess = paidUsers.some(
+    (u) => u.email === email && u.item === item
+  );
+
+  if (!hasAccess) {
+    return res.status(403).send("No se encontró un pago confirmado para este libro y correo.");
+  }
+
+  const fileName = BOOK_FILES[item];
+  if (!fileName) {
+    return res.status(404).send("Libro no configurado en BOOK_FILES.");
+  }
+
+  const filePath = path.join(__dirname, "protected", fileName);
+  res.download(filePath, fileName, (err) => {
+    if (err) {
+      console.error("Error enviando archivo:", err);
+    }
+  });
 });
 
 app.get("/", (req, res) => {
